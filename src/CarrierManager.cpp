@@ -3,6 +3,7 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
 #include <Fonts/FreeSans18pt7b.h>
+#include <Fonts/FreeSans9pt7b.h>
 
 #include "CarrierManager.h"
 
@@ -87,6 +88,14 @@ CarrierManager::APDS9960_LightSensor CarrierManager::getLightSensor() {
     return this->light;
 }
 
+void CarrierManager::setTopText(String text) {
+    this->carrier.display.setFont(&FreeSans9pt7b);
+    this->carrier.display.fillRect(0, 0, 250, 55, 0x0000); // Display clear
+    this->carrier.display.setCursor(55, 45);
+    this->carrier.display.setTextColor(0xFFFF);
+    this->carrier.display.print(text.c_str());
+}
+
 void CarrierManager::enableEnvironmentSensorUpdates(bool enable){
     this->environment.enabled = enable;
 }
@@ -117,33 +126,34 @@ int CarrierManager::PIR = 0;
 
 void CarrierManager::gfxInit() {
     this->carrier.display.setRotation(0);
-    this->carrier.display.setFont(&FreeSans18pt7b);
 }
 
 void CarrierManager::gfxUpdate() {
+    this->carrier.display.setFont(&FreeSans18pt7b);
+    
     // TEMPERATURE ICON
-    this->carrier.display.fillCircle(60, 60, 10, 0x07E0);
-    this->carrier.display.fillRect(50, 60, 21, 28, 0x07E0);
-    this->carrier.display.fillCircle(60, 95, 15, 0x07E0);
-    this->carrier.display.fillCircle(60, 60, 7, 0x0000);
-    this->carrier.display.fillRect(53, 63, 15, 25, 0x0000);
-    this->carrier.display.fillCircle(60, 95, 12, 0x0000);
+    this->carrier.display.fillCircle(60, 70, 10, 0x07E0);
+    this->carrier.display.fillRect(50, 70, 21, 28, 0x07E0);
+    this->carrier.display.fillCircle(60, 105, 15, 0x07E0);
+    this->carrier.display.fillCircle(60, 70, 7, 0x0000);
+    this->carrier.display.fillRect(53, 73, 15, 25, 0x0000);
+    this->carrier.display.fillCircle(60, 105, 12, 0x0000);
 
     // DROPLET ICON
-    this->carrier.display.fillTriangle(42, 160, 60, 130, 78, 160, 0x07FF);
-    this->carrier.display.fillCircle(60, 170, 20, 0x07FF);
-    this->carrier.display.fillTriangle(45, 160, 60, 135, 75, 160, 0x0000);
-    this->carrier.display.fillCircle(60, 170, 17, 0x0000);
+    this->carrier.display.fillTriangle(42, 170, 60, 140, 78, 170, 0x07FF);
+    this->carrier.display.fillCircle(60, 180, 20, 0x07FF);
+    this->carrier.display.fillTriangle(45, 170, 60, 145, 75, 170, 0x0000);
+    this->carrier.display.fillCircle(60, 180, 17, 0x0000);
 
     // TEMPERATURE TEXT
-    this->carrier.display.fillRect(90, 50, 150, 60, 0x0000); // Display clear
-    this->carrier.display.setCursor(100, 95);
+    this->carrier.display.fillRect(90, 60, 150, 60, 0x0000); // Display clear
+    this->carrier.display.setCursor(95, 105);
     this->carrier.display.setTextColor(0xFFFF);
     this->carrier.display.print(String(this->environment.temperature) + " C");
 
     // HUMIDITY TEXT
-    this->carrier.display.fillRect(90, 130, 150, 60, 0x0000); // Display clear
-    this->carrier.display.setCursor(100, 175);
+    this->carrier.display.fillRect(90, 140, 150, 60, 0x0000); // Display clear
+    this->carrier.display.setCursor(95, 185);
     this->carrier.display.setTextColor(0xFFFF);
     this->carrier.display.print(String(this->environment.humidity) + " %");
 }

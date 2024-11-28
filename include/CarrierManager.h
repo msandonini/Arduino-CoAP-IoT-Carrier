@@ -82,6 +82,8 @@ public:
     LPS22HB_PressureSensor getPressureSensor();
     LSM6DS3_IMUSensor getIMUSensor();
     APDS9960_LightSensor getLightSensor();
+    
+    Adafruit_ST7789& getDisplay();
 
     CarrierButtons getButtonsState();
 
@@ -91,6 +93,8 @@ public:
     void enableAccelerometerSensorUpdates(bool enable = true);
     void enableRGBSensorUpdates(bool enable = true);
     void enableGestureSensorUpdates(bool enable = true);
+
+    void setTopText(String text);
 private:
     static int CASE;     // 0 = false, >0 = true, <0 = already started, cannot change
     static int PIR;      // 0 = false, >0 = true, <0 = already started, cannot change
