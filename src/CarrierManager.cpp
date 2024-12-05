@@ -7,6 +7,9 @@
 
 #include "CarrierManager.h"
 
+
+
+
 // ---------------
 // STATIC METHODS
 // ---------------
@@ -27,6 +30,9 @@ int CarrierManager::setPIR(bool usePIR) {
     return CarrierManager::PIR;
 }
 
+unsigned long CarrierManager::setSensorsUpdateTimeout(unsigned long timeout) {
+    CarrierManager::SENSORS_UPDATE_TIMEOUT_MS = timeout;
+}
 
 // ---------------
 // CONSTRUCTORS & DESTRUCTORS
@@ -51,6 +57,7 @@ CarrierManager::CarrierManager() {
 CarrierManager::~CarrierManager() {
     CarrierManager::CASE = 0;
     CarrierManager::PIR = 0;
+    CarrierManager::SENSORS_UPDATE_TIMEOUT_MS = 1000;
 }
 
 
@@ -64,15 +71,29 @@ void CarrierManager::begin() {
     this->closeRelays();
     
     this->gfxInit();
-    this->ledsInit();
     this->buttonsInit();
+    this->ledsInit();
     this->sensorsInit();
+
+    this->sensorsUpdate();
+    this->lastLoopFunction = -1;
+    this->selectedFunction = 0;
+    this->lastSensorsUpdateDrawn = false;
+    this->lastSensorsUpdateMs = millis();
+    this->gfxUpdate();
 }
 void CarrierManager::loop() {
-    this->sensorsUpdate();
+    if (millis() > this->lastSensorsUpdateMs + CarrierManager::SENSORS_UPDATE_TIMEOUT_MS) {
+        this->sensorsUpdate();
+        this->lastSensorsUpdateDrawn = false;
+        this->lastSensorsUpdateMs = millis();
+    }
     this->buttonsUpdate();
     this->ledsUpdate();
-    this->gfxUpdate();
+    if (!this->lastSensorsUpdateDrawn || this->lastLoopFunction != this->selectedFunction) {
+        this->gfxUpdate();
+        this->lastSensorsUpdateDrawn = true;
+    }
 }
 
 CarrierManager::HTS221_EnvironmentSensors CarrierManager::getEnvironmentSensor() {
@@ -90,8 +111,8 @@ CarrierManager::APDS9960_LightSensor CarrierManager::getLightSensor() {
 
 void CarrierManager::setTopText(String text) {
     this->carrier.display.setFont(&FreeSans9pt7b);
-    this->carrier.display.fillRect(0, 0, 250, 55, 0x0000); // Display clear
-    this->carrier.display.setCursor(55, 45);
+    this->carrier.display.fillRect(0, 0, 250, 46, 0x0000); // Display clear
+    this->carrier.display.setCursor(55, 40);
     this->carrier.display.setTextColor(0xFFFF);
     this->carrier.display.print(text.c_str());
 }
@@ -121,6 +142,7 @@ void CarrierManager::enableGestureSensorUpdates(bool enable){
 
 int CarrierManager::CASE = 0;
 int CarrierManager::PIR = 0;
+unsigned long CarrierManager::SENSORS_UPDATE_TIMEOUT_MS = 1000;
 
 // GFX
 
@@ -128,50 +150,143 @@ void CarrierManager::gfxInit() {
     this->carrier.display.setRotation(0);
 }
 
+void CarrierManager::gfxDrawEnvironment() {
+    // Screen cleaning
+    this->carrier.display.fillRect(30, 50, 61, 61, 0x0000);
+    this->carrier.display.fillRect(30, 130, 61, 61, 0x0000);
+
+    // Thermometer icon
+    this->carrier.display.fillCircle(60, 60, 10, 0x07E0);
+    this->carrier.display.fillRect(50, 60, 21, 28, 0x07E0);
+    this->carrier.display.fillCircle(60, 95, 15, 0x07E0);
+    this->carrier.display.fillCircle(60, 60, 7, 0x0000);
+    this->carrier.display.fillRect(53, 63, 15, 25, 0x0000);
+    this->carrier.display.fillCircle(60, 95, 12, 0x0000);
+
+    // Droplet icon
+    this->carrier.display.fillTriangle(42, 160, 60, 130, 78, 160, 0x07FF);
+    this->carrier.display.fillCircle(60, 170, 20, 0x07FF);
+    this->carrier.display.fillTriangle(45, 160, 60, 135, 75, 160, 0x0000);
+    this->carrier.display.fillCircle(60, 170, 17, 0x0000);
+}
+
+void CarrierManager::gfxDrawIMU() {
+    // Screen cleaning
+    this->carrier.display.fillRect(30, 50, 61, 61, 0x0000);
+    this->carrier.display.fillRect(30, 130, 61, 61, 0x0000);
+
+    // Movement icon
+    this->carrier.display.fillTriangle(50, 65, 60, 50, 70, 65, 0x001F);
+    this->carrier.display.fillTriangle(55, 62, 60, 55, 65, 62, 0x0000);
+    this->carrier.display.fillTriangle(30, 80, 45, 70, 45, 90, 0x001F);
+    this->carrier.display.fillTriangle(35, 80, 42, 75, 42, 85, 0x0000);
+    this->carrier.display.fillTriangle(50, 95, 70, 95, 60, 110, 0x001F);
+    this->carrier.display.fillTriangle(55, 98, 65, 98, 60, 105, 0x0000);
+    this->carrier.display.fillTriangle(75, 90, 75, 70, 90, 80, 0x001F);
+    this->carrier.display.fillTriangle(78, 85, 78, 75, 85, 80, 0x0000);
+    this->carrier.display.fillRect(45, 75, 30, 10, 0x001F);
+    this->carrier.display.fillRect(55, 65, 10, 30, 0x001F);
+    this->carrier.display.fillRect(46, 78, 29, 4, 0x0000);
+    this->carrier.display.fillRect(58, 66, 4, 29, 0x0000);
+
+    // Rotation icon
+    this->carrier.display.fillCircle(65, 160, 25, 0xF800);
+    this->carrier.display.fillCircle(55, 160, 25, 0xF800);
+    this->carrier.display.fillCircle(65, 160, 22, 0x0000);
+    this->carrier.display.fillCircle(55, 160, 22, 0x0000);
+    this->carrier.display.fillCircle(65, 160, 18, 0xF800);
+    this->carrier.display.fillCircle(55, 160, 18, 0xF800);
+    this->carrier.display.fillCircle(65, 160, 15, 0x0000);
+    this->carrier.display.fillCircle(55, 160, 15, 0x0000);
+    this->carrier.display.fillTriangle(55, 160, 30, 130, 55, 130, 0x0000);
+    this->carrier.display.fillTriangle(65, 160, 65, 190, 90, 190, 0x0000);
+    this->carrier.display.fillRect(55, 130, 10, 60, 0x0000);
+    this->carrier.display.fillTriangle(50, 140, 65, 130, 65, 150, 0xF800);
+    this->carrier.display.fillTriangle(55, 190, 55, 170, 70, 180, 0xF800);
+    this->carrier.display.fillTriangle(55, 140, 62, 135, 62, 145, 0x0000);
+    this->carrier.display.fillTriangle(58, 185, 58, 175, 65, 180, 0x0000);
+    this->carrier.display.fillCircle(60, 160, 5, 0xF800);
+    this->carrier.display.fillCircle(60, 160, 2, 0x0000);
+}
+
 void CarrierManager::gfxUpdate() {
-    this->carrier.display.setFont(&FreeSans18pt7b);
     
-    // TEMPERATURE ICON
-    this->carrier.display.fillCircle(60, 70, 10, 0x07E0);
-    this->carrier.display.fillRect(50, 70, 21, 28, 0x07E0);
-    this->carrier.display.fillCircle(60, 105, 15, 0x07E0);
-    this->carrier.display.fillCircle(60, 70, 7, 0x0000);
-    this->carrier.display.fillRect(53, 73, 15, 25, 0x0000);
-    this->carrier.display.fillCircle(60, 105, 12, 0x0000);
+    //this->gfxDrawEnvironment();
+    if (this->selectedFunction == 0) {
+        if (this->lastLoopFunction != this->selectedFunction) {
+            this->gfxDrawEnvironment();
+        }
 
-    // DROPLET ICON
-    this->carrier.display.fillTriangle(42, 170, 60, 140, 78, 170, 0x07FF);
-    this->carrier.display.fillCircle(60, 180, 20, 0x07FF);
-    this->carrier.display.fillTriangle(45, 170, 60, 145, 75, 170, 0x0000);
-    this->carrier.display.fillCircle(60, 180, 17, 0x0000);
+        this->carrier.display.setFont(&FreeSans18pt7b);
+        // TEMPERATURE TEXT
+        this->carrier.display.fillRect(95, 50, 150, 61, 0x0000); // Display clear
+        this->carrier.display.setCursor(95, 95);
+        this->carrier.display.setTextColor(0xFFFF);
+        this->carrier.display.print(String(this->environment.temperature) + " C");
 
-    // TEMPERATURE TEXT
-    this->carrier.display.fillRect(90, 60, 150, 60, 0x0000); // Display clear
-    this->carrier.display.setCursor(95, 105);
-    this->carrier.display.setTextColor(0xFFFF);
-    this->carrier.display.print(String(this->environment.temperature) + " C");
+        // HUMIDITY TEXT
+        this->carrier.display.fillRect(95, 130, 150, 61, 0x0000); // Display clear
+        this->carrier.display.setCursor(95, 175);
+        this->carrier.display.setTextColor(0xFFFF);
+        this->carrier.display.print(String(this->environment.humidity) + " %");
+    } else if (this->selectedFunction == 1) {
+        if (this->lastLoopFunction != this->selectedFunction) {
+            this->gfxDrawIMU();
+        }
+        this->carrier.display.setFont(&FreeSans9pt7b);
 
-    // HUMIDITY TEXT
-    this->carrier.display.fillRect(90, 140, 150, 60, 0x0000); // Display clear
-    this->carrier.display.setCursor(95, 185);
-    this->carrier.display.setTextColor(0xFFFF);
-    this->carrier.display.print(String(this->environment.humidity) + " %");
+        // ACCELEROMETER
+        this->carrier.display.fillRect(95, 50, 150, 61, 0x0000); // Display clear
+        if (this->imu.accelerometer.enabled) {
+            this->carrier.display.setTextColor(0xFFFF);
+            this->carrier.display.setCursor(95, 70);
+            this->carrier.display.print("X: " + String(this->imu.accelerometer.x));
+            this->carrier.display.setCursor(95, 90);
+            this->carrier.display.print("Y: " + String(this->imu.accelerometer.y));
+            this->carrier.display.setCursor(95, 110);
+            this->carrier.display.print("Z: " + String(this->imu.accelerometer.z));
+        }
+
+        // GYROSCOPE
+        this->carrier.display.fillRect(95, 130, 150, 61, 0x0000); // Display clear
+        if (this->imu.gyroscope.enabled) {
+            this->carrier.display.setTextColor(0xFFFF);
+            this->carrier.display.setCursor(95, 150);
+            this->carrier.display.print("X: " + String(this->imu.gyroscope.x));
+            this->carrier.display.setCursor(95, 170);
+            this->carrier.display.print("Y: " + String(this->imu.gyroscope.y));
+            this->carrier.display.setCursor(95, 190);
+            this->carrier.display.print("Z: " + String(this->imu.gyroscope.z));
+        }
+    }
 }
 
 // BUTTONS
 
 void CarrierManager::buttonsInit() {
-    //this->carrier.Buttons.begin();
 }
 
 void CarrierManager::buttonsUpdate() {
     this->carrier.Buttons.update();
 
-    this->buttonsState.btn0 = this->carrier.Buttons.getTouch(TOUCH0);
-    this->buttonsState.btn1 = this->carrier.Buttons.getTouch(TOUCH1);
-    this->buttonsState.btn2 = this->carrier.Buttons.getTouch(TOUCH2);
-    this->buttonsState.btn3 = this->carrier.Buttons.getTouch(TOUCH3);
-    this->buttonsState.btn4 = this->carrier.Buttons.getTouch(TOUCH4);
+    this->lastLoopFunction = this->selectedFunction;
+
+    if (this->carrier.Buttons.onTouchDown(TOUCH0)) {
+        this->carrier.Buzzer.beep();
+        this->selectedFunction = 0;
+    } else if (this->carrier.Buttons.onTouchDown(TOUCH1)) {
+        this->carrier.Buzzer.beep();
+        this->selectedFunction = 1;
+    } else if (this->carrier.Buttons.onTouchDown(TOUCH2)) {
+        this->carrier.Buzzer.beep();
+        this->selectedFunction = 2;
+    } else if (this->carrier.Buttons.onTouchDown(TOUCH3)) {
+        this->carrier.Buzzer.beep();
+        this->selectedFunction = 3;
+    } else if (this->carrier.Buttons.onTouchDown(TOUCH4)) {
+        this->carrier.Buzzer.beep();
+        this->selectedFunction = 4;
+    }
 }
 
 // LEDS
@@ -187,6 +302,14 @@ void CarrierManager::ledsInit() {
 }
 
 void CarrierManager::ledsUpdate() {
+    this->carrier.leds.clear();
+    this->carrier.leds.setPixelColor(0, 0, 0, 0);
+    this->carrier.leds.setPixelColor(1, 0, 0, 0);
+    this->carrier.leds.setPixelColor(2, 0, 0, 0);
+    this->carrier.leds.setPixelColor(3, 0, 0, 0);
+    this->carrier.leds.setPixelColor(4, 0, 0, 0);
+    this->carrier.leds.setPixelColor(this->selectedFunction, 0, 0, 255);
+    this->carrier.leds.show();
 }
 
 // MEASUREMENTS
@@ -228,4 +351,14 @@ void CarrierManager::sensorsUpdate() {
 void CarrierManager::closeRelays() {
     this->carrier.Relay1.close();
     this->carrier.Relay2.close();
+}
+
+
+// DRAW METHODS
+void drawMovementIcon(Adafruit_ST7789& display) {
+
+}
+
+void drawRotationIcon(Adafruit_ST7789& display) {
+    
 }

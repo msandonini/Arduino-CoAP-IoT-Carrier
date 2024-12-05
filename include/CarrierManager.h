@@ -55,20 +55,9 @@ public:
         APDS9960_GestureSensor gesture;
     };
 
-    struct CarrierButtons {
-        bool btn0, btn1, btn2, btn3, btn4;
-    };
-
-    struct CarrierLed {
-        int r, g, b, brightness;
-    };
-    struct CarrierLedStar {
-        CarrierLed led0, led1, led2, led3, led4;
-    };
-
-
     static int setCase(bool useCase);
     static int setPIR(bool usePIR);
+    static unsigned long setSensorsUpdateTimeout(unsigned long timeout);
 
 
     CarrierManager();
@@ -85,8 +74,6 @@ public:
     
     Adafruit_ST7789& getDisplay();
 
-    CarrierButtons getButtonsState();
-
     void enableEnvironmentSensorUpdates(bool enable = true);
     void enablePressureSensorUpdates(bool enable = true);
     void enableGyroscopeSensorUpdates(bool enable = true);
@@ -98,6 +85,7 @@ public:
 private:
     static int CASE;     // 0 = false, >0 = true, <0 = already started, cannot change
     static int PIR;      // 0 = false, >0 = true, <0 = already started, cannot change
+    static unsigned long SENSORS_UPDATE_TIMEOUT_MS;
 
 
     MKRIoTCarrier carrier;
@@ -107,12 +95,19 @@ private:
     LSM6DS3_IMUSensor imu;
     APDS9960_LightSensor light;
 
-    CarrierButtons buttonsState;
-    CarrierLedStar leds;
+    int lastLoopFunction;
+    int selectedFunction;
+
+    long lastSensorsUpdateMs;
+    bool lastSensorsUpdateDrawn;
 
 
     void gfxInit();
+    void gfxDrawEnvironment();
+    void gfxDrawIMU();
     void gfxUpdate();
+    //void gfxUpdateEnvironment();
+    //void gfxUpdateIMU();
 
     void buttonsInit();
     void buttonsUpdate();

@@ -61,6 +61,8 @@ void setup() {
     delay(SETUP_DELAY_MS);
 
     carrier.enableEnvironmentSensorUpdates();
+    //carrier.enableAccelerometerSensorUpdates();
+    //carrier.enableGyroscopeSensorUpdates();
 
     carrier.begin();
 
@@ -87,18 +89,12 @@ void setup() {
     } else {
         carrier.setTopText("Not connected");
     }
-
-    carrier.loop();
-    startTime = millis();
 }
 
 int wifiOldStatus;
 
 void loop() {
-    if (millis() > startTime + LOOP_CARRIER_UPDATE_MS) {
-        carrier.loop();
-        startTime = millis();
-    }
+    carrier.loop();
     
     if (WiFi.status() == WL_CONNECTED) {
         coap.loop();
