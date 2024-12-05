@@ -61,6 +61,7 @@ void setup() {
     delay(SETUP_DELAY_MS);
 
     carrier.enableEnvironmentSensorUpdates();
+    carrier.setCase(true);
     //carrier.enableAccelerometerSensorUpdates();
     //carrier.enableGyroscopeSensorUpdates();
 

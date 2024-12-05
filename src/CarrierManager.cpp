@@ -39,19 +39,6 @@ unsigned long CarrierManager::setSensorsUpdateTimeout(unsigned long timeout) {
 // ---------------
 
 CarrierManager::CarrierManager() {
-    if (CarrierManager::CASE > 0) {
-        this->carrier.withCase();
-    } else {
-        this->carrier.noCase();
-    }
-
-    CarrierManager::CASE = -1;
-
-    if (CarrierManager::PIR > 0) {
-        pinMode((this->carrier.getBoardRevision() == 1 ? A5 : A0), INPUT);
-    }
-
-    CarrierManager::PIR = -1;
 }
 
 CarrierManager::~CarrierManager() {
@@ -66,6 +53,20 @@ CarrierManager::~CarrierManager() {
 // ---------------
 
 void CarrierManager::begin() {
+    if (CarrierManager::CASE > 0) {
+        this->carrier.withCase();
+    } else {
+        this->carrier.noCase();
+    }
+
+    CarrierManager::CASE = -1;
+
+    if (CarrierManager::PIR > 0) {
+        pinMode((this->carrier.getBoardRevision() == 1 ? A5 : A0), INPUT);
+    }
+
+    CarrierManager::PIR = -1;
+
     this->carrier.begin();
 
     this->closeRelays();
