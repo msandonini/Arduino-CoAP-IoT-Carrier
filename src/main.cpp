@@ -14,9 +14,10 @@
 
 #define LOOP_CARRIER_UPDATE_MS 10000
 
-#define WIFI_DELAY_FIRMWARE_NOT_UPDATED 5000
+#define WIFI_DELAY_FIRMWARE_NOT_UPDATED 500
 #define WIFI_RETRY_LOOPS_LIMIT 5
 #define WIFI_RETRY_DELAY_MS 1000
+#define WIFI_RETRY_LOOP_TIMEOUT_MS 60000
 #define UDP_COAP_PORT 5683
 
 #define COAP_TEMP_RESOURCE_NAME "temperature"
@@ -49,10 +50,12 @@ CarrierManager carrier;
 WiFiUDP udp;
 Coap coap(udp);
 
-unsigned long startTime;
+
+int wifiOldStatus;
+unsigned long wifiStatusUpdateTime;
 
 
-void callback_wkc(CoapPacket &packet, IPAddress ip, int port);
+// void callback_wkc(CoapPacket &packet, IPAddress ip, int port);
 void callback_temp(CoapPacket &packet, IPAddress ip, int port);
 void callback_hmdt(CoapPacket &packet, IPAddress ip, int port);
 
@@ -61,19 +64,15 @@ void setup() {
     delay(SETUP_DELAY_MS);
 
     carrier.enableEnvironmentSensorUpdates();
-    carrier.setCase(true);
-    //carrier.enableAccelerometerSensorUpdates();
-    //carrier.enableGyroscopeSensorUpdates();
+    carrier.enableAccelerometerSensorUpdates();
+    carrier.enableGyroscopeSensorUpdates();
+    carrier.enablePressureSensorUpdates();
+    carrier.setSensorsUpdateTimeout(LOOP_CARRIER_UPDATE_MS);
+    carrier.setCase(false);
 
     carrier.begin();
 
-    String firmware = WiFi.firmwareVersion();
-    if (firmware < WIFI_FIRMWARE_LATEST_VERSION) {
-        carrier.setTopText("Update WiFi firmware");
-        delay(WIFI_DELAY_FIRMWARE_NOT_UPDATED);
-    }
-
-    carrier.setTopText("Connecting...");
+    carrier.setMessage("Connecting...");
 
     WiFi.begin(SECRET_SSID, SECRET_PASS);
 
@@ -86,27 +85,27 @@ void setup() {
     coap.start();
     
     if (WiFi.status() == WL_CONNECTED) {
-        carrier.setTopText(WiFi.localIP().toString());
-    } else {
-        carrier.setTopText("Not connected");
+        carrier.setMessage(WiFi.localIP().toString());
     }
-}
 
-int wifiOldStatus;
+    wifiStatusUpdateTime = millis();
+}
 
 void loop() {
     carrier.loop();
     
     if (WiFi.status() == WL_CONNECTED) {
         coap.loop();
-    } else {
+    } else if ((WiFi.status() == WL_DISCONNECTED || WiFi.status() == WL_CONNECTION_LOST || WiFi.status() == WL_CONNECT_FAILED) &&
+                millis() > wifiStatusUpdateTime + WIFI_RETRY_LOOP_TIMEOUT_MS) {
         WiFi.begin(SECRET_SSID, SECRET_PASS);
+        wifiStatusUpdateTime = millis();
     }
 
     if (WiFi.status() != wifiOldStatus) {
         wifiOldStatus = WiFi.status();
 
-        carrier.setTopText(wifiOldStatus == WL_CONNECTED ? WiFi.localIP().toString() : "Not connected");
+        carrier.setMessage(wifiOldStatus == WL_CONNECTED ? WiFi.localIP().toString() + " : " + UDP_COAP_PORT : "Connecting...");
     }
 }
 

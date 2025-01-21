@@ -3,11 +3,12 @@
 #include <Adafruit_GFX.h>
 #include <Adafruit_ST7789.h>
 #include <Fonts/FreeSans18pt7b.h>
+#include <Fonts/FreeSans12pt7b.h>
 #include <Fonts/FreeSans9pt7b.h>
 
 #include "CarrierManager.h"
 
-
+#include "CarrierGfxDrawFunctions.h"
 
 
 // ---------------
@@ -110,14 +111,6 @@ CarrierManager::APDS9960_LightSensor CarrierManager::getLightSensor() {
     return this->light;
 }
 
-void CarrierManager::setTopText(String text) {
-    this->carrier.display.setFont(&FreeSans9pt7b);
-    this->carrier.display.fillRect(0, 0, 250, 46, 0x0000); // Display clear
-    this->carrier.display.setCursor(55, 40);
-    this->carrier.display.setTextColor(0xFFFF);
-    this->carrier.display.print(text.c_str());
-}
-
 void CarrierManager::enableEnvironmentSensorUpdates(bool enable){
     this->environment.enabled = enable;
 }
@@ -137,6 +130,14 @@ void CarrierManager::enableGestureSensorUpdates(bool enable){
     this->light.gesture.enabled = enable;
 }
 
+void CarrierManager::setMessage(String msg){
+    this->message = msg;
+}
+
+String CarrierManager::getMessage() {
+    return this->message;
+}
+
 // ---------------
 // PRIVATE STATIC ATTRIBUTES
 // ---------------
@@ -151,114 +152,54 @@ void CarrierManager::gfxInit() {
     this->carrier.display.setRotation(0);
 }
 
-void CarrierManager::gfxDrawEnvironment() {
-    // Screen cleaning
-    this->carrier.display.fillRect(30, 50, 61, 61, 0x0000);
-    this->carrier.display.fillRect(30, 130, 61, 61, 0x0000);
-
-    // Thermometer icon
-    this->carrier.display.fillCircle(60, 60, 10, 0x07E0);
-    this->carrier.display.fillRect(50, 60, 21, 28, 0x07E0);
-    this->carrier.display.fillCircle(60, 95, 15, 0x07E0);
-    this->carrier.display.fillCircle(60, 60, 7, 0x0000);
-    this->carrier.display.fillRect(53, 63, 15, 25, 0x0000);
-    this->carrier.display.fillCircle(60, 95, 12, 0x0000);
-
-    // Droplet icon
-    this->carrier.display.fillTriangle(42, 160, 60, 130, 78, 160, 0x07FF);
-    this->carrier.display.fillCircle(60, 170, 20, 0x07FF);
-    this->carrier.display.fillTriangle(45, 160, 60, 135, 75, 160, 0x0000);
-    this->carrier.display.fillCircle(60, 170, 17, 0x0000);
-}
-
-void CarrierManager::gfxDrawIMU() {
-    // Screen cleaning
-    this->carrier.display.fillRect(30, 50, 61, 61, 0x0000);
-    this->carrier.display.fillRect(30, 130, 61, 61, 0x0000);
-
-    // Movement icon
-    this->carrier.display.fillTriangle(50, 65, 60, 50, 70, 65, 0x001F);
-    this->carrier.display.fillTriangle(55, 62, 60, 55, 65, 62, 0x0000);
-    this->carrier.display.fillTriangle(30, 80, 45, 70, 45, 90, 0x001F);
-    this->carrier.display.fillTriangle(35, 80, 42, 75, 42, 85, 0x0000);
-    this->carrier.display.fillTriangle(50, 95, 70, 95, 60, 110, 0x001F);
-    this->carrier.display.fillTriangle(55, 98, 65, 98, 60, 105, 0x0000);
-    this->carrier.display.fillTriangle(75, 90, 75, 70, 90, 80, 0x001F);
-    this->carrier.display.fillTriangle(78, 85, 78, 75, 85, 80, 0x0000);
-    this->carrier.display.fillRect(45, 75, 30, 10, 0x001F);
-    this->carrier.display.fillRect(55, 65, 10, 30, 0x001F);
-    this->carrier.display.fillRect(46, 78, 29, 4, 0x0000);
-    this->carrier.display.fillRect(58, 66, 4, 29, 0x0000);
-
-    // Rotation icon
-    this->carrier.display.fillCircle(65, 160, 25, 0xF800);
-    this->carrier.display.fillCircle(55, 160, 25, 0xF800);
-    this->carrier.display.fillCircle(65, 160, 22, 0x0000);
-    this->carrier.display.fillCircle(55, 160, 22, 0x0000);
-    this->carrier.display.fillCircle(65, 160, 18, 0xF800);
-    this->carrier.display.fillCircle(55, 160, 18, 0xF800);
-    this->carrier.display.fillCircle(65, 160, 15, 0x0000);
-    this->carrier.display.fillCircle(55, 160, 15, 0x0000);
-    this->carrier.display.fillTriangle(55, 160, 30, 130, 55, 130, 0x0000);
-    this->carrier.display.fillTriangle(65, 160, 65, 190, 90, 190, 0x0000);
-    this->carrier.display.fillRect(55, 130, 10, 60, 0x0000);
-    this->carrier.display.fillTriangle(50, 140, 65, 130, 65, 150, 0xF800);
-    this->carrier.display.fillTriangle(55, 190, 55, 170, 70, 180, 0xF800);
-    this->carrier.display.fillTriangle(55, 140, 62, 135, 62, 145, 0x0000);
-    this->carrier.display.fillTriangle(58, 185, 58, 175, 65, 180, 0x0000);
-    this->carrier.display.fillCircle(60, 160, 5, 0xF800);
-    this->carrier.display.fillCircle(60, 160, 2, 0x0000);
-}
 
 void CarrierManager::gfxUpdate() {
-    
-    //this->gfxDrawEnvironment();
-    if (this->selectedFunction == 0) {
-        if (this->lastLoopFunction != this->selectedFunction) {
-            this->gfxDrawEnvironment();
-        }
+    cleanDisplay(this->carrier.display);
+    switch (this->selectedFunction) {
+        case 0:
 
-        this->carrier.display.setFont(&FreeSans18pt7b);
-        // TEMPERATURE TEXT
-        this->carrier.display.fillRect(95, 50, 150, 61, 0x0000); // Display clear
-        this->carrier.display.setCursor(95, 95);
-        this->carrier.display.setTextColor(0xFFFF);
-        this->carrier.display.print(String(this->environment.temperature) + " C");
+            // TEMPERATURE
+            drawThermometerIcon(this->carrier.display, 0x07E0, 45, 50);
 
-        // HUMIDITY TEXT
-        this->carrier.display.fillRect(95, 130, 150, 61, 0x0000); // Display clear
-        this->carrier.display.setCursor(95, 175);
-        this->carrier.display.setTextColor(0xFFFF);
-        this->carrier.display.print(String(this->environment.humidity) + " %");
-    } else if (this->selectedFunction == 1) {
-        if (this->lastLoopFunction != this->selectedFunction) {
-            this->gfxDrawIMU();
-        }
-        this->carrier.display.setFont(&FreeSans9pt7b);
+            drawMessage(this->carrier.display, &FreeSans18pt7b, 100, 95, 0xFFFF, String((int) this->environment.temperature) + " C");
 
-        // ACCELEROMETER
-        this->carrier.display.fillRect(95, 50, 150, 61, 0x0000); // Display clear
-        if (this->imu.accelerometer.enabled) {
-            this->carrier.display.setTextColor(0xFFFF);
-            this->carrier.display.setCursor(95, 70);
-            this->carrier.display.print("X: " + String(this->imu.accelerometer.x));
-            this->carrier.display.setCursor(95, 90);
-            this->carrier.display.print("Y: " + String(this->imu.accelerometer.y));
-            this->carrier.display.setCursor(95, 110);
-            this->carrier.display.print("Z: " + String(this->imu.accelerometer.z));
-        }
+            // HUMIDITY
+            drawDropletIcon(this->carrier.display, 0x07FF, 40, 130);
 
-        // GYROSCOPE
-        this->carrier.display.fillRect(95, 130, 150, 61, 0x0000); // Display clear
-        if (this->imu.gyroscope.enabled) {
-            this->carrier.display.setTextColor(0xFFFF);
-            this->carrier.display.setCursor(95, 150);
-            this->carrier.display.print("X: " + String(this->imu.gyroscope.x));
-            this->carrier.display.setCursor(95, 170);
-            this->carrier.display.print("Y: " + String(this->imu.gyroscope.y));
-            this->carrier.display.setCursor(95, 190);
-            this->carrier.display.print("Z: " + String(this->imu.gyroscope.z));
-        }
+            drawMessage(this->carrier.display, &FreeSans18pt7b, 100, 175, 0xFFFF, String((int) this->environment.humidity) + " %");
+        
+            break;
+        
+        case 1:
+            // ACCELEROMETER
+
+            drawMovementIcon(this->carrier.display, 0x001F, 30, 50);
+
+            drawMessage(this->carrier.display, &FreeSans9pt7b, 100, 70, 0xFFFF, "X: " + String(this->imu.accelerometer.x));
+            drawMessage(this->carrier.display, &FreeSans9pt7b, 100, 90, 0xFFFF, "Y: " + String(this->imu.accelerometer.y));
+            drawMessage(this->carrier.display, &FreeSans9pt7b, 100, 110, 0xFFFF, "Z: " + String(this->imu.accelerometer.z));
+            
+            // GYROSCOPE
+            
+            drawRotationIcon(this->carrier.display, 0xF800, 30, 130);
+
+            drawMessage(this->carrier.display, &FreeSans9pt7b, 100, 150, 0xFFFF, "X: " + String(this->imu.gyroscope.x));
+            drawMessage(this->carrier.display, &FreeSans9pt7b, 100, 170, 0xFFFF, "Y: " + String(this->imu.gyroscope.y));
+            drawMessage(this->carrier.display, &FreeSans9pt7b, 100, 190, 0xFFFF, "Z: " + String(this->imu.gyroscope.z));
+
+            break;
+        case 2:
+            // PRESSURE
+
+            drawPressureIcon(this->carrier.display, 0xFFE0, 30, 85);
+
+            drawMessage(this->carrier.display, &FreeSans12pt7b, 100, 120, 0xFFFF, String(this->pressure.pressure) + " kPa");
+
+            break;
+        case 4:
+            // MESSAGE
+            drawMessage(this->carrier.display, &FreeSans12pt7b, 20, 120, 0xFFFF, this->message);
+            break;
     }
 }
 
@@ -273,19 +214,19 @@ void CarrierManager::buttonsUpdate() {
     this->lastLoopFunction = this->selectedFunction;
 
     if (this->carrier.Buttons.onTouchDown(TOUCH0)) {
-        this->carrier.Buzzer.beep();
+        //this->carrier.Buzzer.beep();
         this->selectedFunction = 0;
     } else if (this->carrier.Buttons.onTouchDown(TOUCH1)) {
-        this->carrier.Buzzer.beep();
+        //this->carrier.Buzzer.beep();
         this->selectedFunction = 1;
     } else if (this->carrier.Buttons.onTouchDown(TOUCH2)) {
-        this->carrier.Buzzer.beep();
+        //this->carrier.Buzzer.beep();
         this->selectedFunction = 2;
     } else if (this->carrier.Buttons.onTouchDown(TOUCH3)) {
-        this->carrier.Buzzer.beep();
+        //this->carrier.Buzzer.beep();
         this->selectedFunction = 3;
     } else if (this->carrier.Buttons.onTouchDown(TOUCH4)) {
-        this->carrier.Buzzer.beep();
+        //this->carrier.Buzzer.beep();
         this->selectedFunction = 4;
     }
 }

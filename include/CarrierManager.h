@@ -74,6 +74,7 @@ public:
     
     Adafruit_ST7789& getDisplay();
 
+
     void enableEnvironmentSensorUpdates(bool enable = true);
     void enablePressureSensorUpdates(bool enable = true);
     void enableGyroscopeSensorUpdates(bool enable = true);
@@ -81,7 +82,8 @@ public:
     void enableRGBSensorUpdates(bool enable = true);
     void enableGestureSensorUpdates(bool enable = true);
 
-    void setTopText(String text);
+    void setMessage(String msg);
+    String getMessage();
 private:
     static int CASE;     // 0 = false, >0 = true, <0 = already started, cannot change
     static int PIR;      // 0 = false, >0 = true, <0 = already started, cannot change
@@ -94,6 +96,7 @@ private:
     LPS22HB_PressureSensor pressure;
     LSM6DS3_IMUSensor imu;
     APDS9960_LightSensor light;
+    String message;
 
     int lastLoopFunction;
     int selectedFunction;
@@ -103,11 +106,7 @@ private:
 
 
     void gfxInit();
-    void gfxDrawEnvironment();
-    void gfxDrawIMU();
     void gfxUpdate();
-    //void gfxUpdateEnvironment();
-    //void gfxUpdateIMU();
 
     void buttonsInit();
     void buttonsUpdate();
