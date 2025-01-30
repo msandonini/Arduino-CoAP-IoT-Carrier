@@ -22,16 +22,34 @@
 
 #define COAP_TEMP_RESOURCE_NAME "temperature"
 #define COAP_HMDT_RESOURCE_NAME "humidity"
+#define COAP_PRSS_RESOURCE_NAME "pressure"
+#define COAP_ACCL_RESOURCE_NAME "accelerometer"
+#define COAP_GYRO_RESOURCE_NAME "gyroscope"
 
-#define CORE_TEMP_TITLE "temperature-actuator"
+#define CORE_TEMP_TITLE "temperature-sensor"
 #define CORE_TEMP_RT "iot.mkriotcarrier.sensor.env.temperature"
 #define CORE_TEMP_IF "core.s"
 #define CORE_TEMP_CT COAP_APPLICATION_JSON
 
-#define CORE_HMDT_TITLE "humidity-actuator"
+#define CORE_HMDT_TITLE "humidity-sensor"
 #define CORE_HMDT_RT "iot.mkriotcarrier.sensor.env.humidity"
 #define CORE_HMDT_IF "core.s"
 #define CORE_HMDT_CT COAP_APPLICATION_JSON
+
+#define CORE_PRSS_TITLE "pressure-sensor"
+#define CORE_PRSS_RT "iot.mkriotcarrier.sensor.pressure"
+#define CORE_PRSS_IF "core.s"
+#define CORE_PRSS_CT COAP_APPLICATION_JSON
+
+#define CORE_ACCL_TITLE "accel-sensor"
+#define CORE_ACCL_RT "iot.mkriotcarrier.sensor.accelerometer"
+#define CORE_ACCL_IF "core.s"
+#define CORE_ACCL_CT COAP_APPLICATION_JSON
+
+#define CORE_GYRO_TITLE "gyro-sensor"
+#define CORE_GYRO_RT "iot.mkriotcarrier.sensor.gyroscope"
+#define CORE_GYRO_IF "core.s"
+#define CORE_GYRO_CT COAP_APPLICATION_JSON
 
 #define SENML_BN "mkriotcarrier:rack:env"
 #define SENML_BVER 1.0
@@ -41,6 +59,17 @@
 
 #define SENML_N_HUMIDITY "humidity"
 #define SENML_U_HUMIDITY "%RH"
+
+#define SENML_N_PRESSURE "pressure"
+#define SENML_U_PRESSURE "Pa"
+
+#define SENML_N_ACCELEROMETER_X "accel:x"
+#define SENML_N_ACCELEROMETER_Y "accel:y"
+#define SENML_N_ACCELEROMETER_Z "accel:z"
+
+#define SENML_N_GYROSCOPE_X "gyro:x"
+#define SENML_N_GYROSCOPE_Y "gyro:y"
+#define SENML_N_GYROSCOPE_Z "gyro:z"
 
 #define CORE_IF "core.s"
 
@@ -58,6 +87,9 @@ unsigned long wifiStatusUpdateTime;
 // void callback_wkc(CoapPacket &packet, IPAddress ip, int port);
 void callback_temp(CoapPacket &packet, IPAddress ip, int port);
 void callback_hmdt(CoapPacket &packet, IPAddress ip, int port);
+void callback_accl(CoapPacket &packet, IPAddress ip, int port);
+void callback_gyro(CoapPacket &packet, IPAddress ip, int port);
+void callback_prss(CoapPacket &packet, IPAddress ip, int port);
 
 
 void setup() {
@@ -81,6 +113,9 @@ void setup() {
     // coap.server(callback_wkc, COAP_DISCOVERY_RESOURCE_NAME); // Does not work, message gets too long
     coap.server(callback_temp, COAP_TEMP_RESOURCE_NAME);
     coap.server(callback_hmdt, COAP_HMDT_RESOURCE_NAME);
+    coap.server(callback_prss, COAP_PRSS_RESOURCE_NAME);
+    coap.server(callback_accl, COAP_ACCL_RESOURCE_NAME);
+    coap.server(callback_gyro, COAP_GYRO_RESOURCE_NAME);
 
     coap.start();
     
@@ -180,5 +215,91 @@ void callback_hmdt(CoapPacket &packet, IPAddress ip, int port) {
     coap.sendResponse(ip, port, packet.messageid, 
         message.c_str(), message.length(), 
         COAP_RESPONSE_CODE(COAP_CONTENT), COAP_CONTENT_TYPE(CORE_HMDT_CT), 
+        packet.token, packet.tokenlen);
+}
+
+void callback_accl(CoapPacket &packet, IPAddress ip, int port) {
+    JsonDocument doc;
+
+    JsonObject jsonBase = doc.add<JsonObject>();
+    jsonBase["bn"] = SENML_BN;
+    jsonBase["bt"] = millis();
+    jsonBase["bver"] = SENML_BVER;
+
+    JsonObject jsonAcclX = doc.add<JsonObject>();
+    jsonAcclX["n"] = SENML_N_GYROSCOPE_X;
+    jsonAcclX["v"] = carrier.getIMUSensor().gyroscope.x;
+
+    JsonObject jsonAcclY = doc.add<JsonObject>();
+    jsonAcclY["n"] = SENML_N_GYROSCOPE_Y;
+    jsonAcclY["v"] = carrier.getIMUSensor().gyroscope.y;
+
+    JsonObject jsonAcclZ = doc.add<JsonObject>();
+    jsonAcclZ["n"] = SENML_N_GYROSCOPE_Z;
+    jsonAcclZ["v"] = carrier.getIMUSensor().gyroscope.z;
+
+    doc.shrinkToFit();
+
+    String message;
+    serializeJson(doc, message);
+
+    coap.sendResponse(ip, port, packet.messageid, 
+        message.c_str(), message.length(), 
+        COAP_RESPONSE_CODE(COAP_CONTENT), COAP_CONTENT_TYPE(CORE_ACCL_CT), 
+        packet.token, packet.tokenlen);
+}
+
+void callback_gyro(CoapPacket &packet, IPAddress ip, int port) {
+    JsonDocument doc;
+
+    JsonObject jsonBase = doc.add<JsonObject>();
+    jsonBase["bn"] = SENML_BN;
+    jsonBase["bt"] = millis();
+    jsonBase["bver"] = SENML_BVER;
+
+    JsonObject jsonGyroX = doc.add<JsonObject>();
+    jsonGyroX["n"] = SENML_N_GYROSCOPE_X;
+    jsonGyroX["v"] = carrier.getIMUSensor().gyroscope.x;
+
+    JsonObject jsonGyroY = doc.add<JsonObject>();
+    jsonGyroY["n"] = SENML_N_GYROSCOPE_Y;
+    jsonGyroY["v"] = carrier.getIMUSensor().gyroscope.y;
+
+    JsonObject jsonGyroZ = doc.add<JsonObject>();
+    jsonGyroZ["n"] = SENML_N_GYROSCOPE_Z;
+    jsonGyroZ["v"] = carrier.getIMUSensor().gyroscope.z;
+
+    doc.shrinkToFit();
+
+    String message;
+    serializeJson(doc, message);
+
+    coap.sendResponse(ip, port, packet.messageid, 
+        message.c_str(), message.length(), 
+        COAP_RESPONSE_CODE(COAP_CONTENT), COAP_CONTENT_TYPE(CORE_GYRO_CT), 
+        packet.token, packet.tokenlen);
+}
+
+void callback_prss(CoapPacket &packet, IPAddress ip, int port) {
+    JsonDocument doc;
+
+    JsonObject jsonBase = doc.add<JsonObject>();
+    jsonBase["bn"] = SENML_BN;
+    jsonBase["bt"] = millis();
+    jsonBase["bver"] = SENML_BVER;
+
+    JsonObject jsonPrss = doc.add<JsonObject>();
+    jsonPrss["n"] = SENML_N_PRESSURE;
+    jsonPrss["v"] = carrier.getEnvironmentSensor().humidity;
+    jsonPrss["u"] = SENML_U_PRESSURE;
+
+    doc.shrinkToFit();
+
+    String message;
+    serializeJson(doc, message);
+
+    coap.sendResponse(ip, port, packet.messageid, 
+        message.c_str(), message.length(), 
+        COAP_RESPONSE_CODE(COAP_CONTENT), COAP_CONTENT_TYPE(CORE_PRSS_CT), 
         packet.token, packet.tokenlen);
 }
